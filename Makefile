@@ -2,7 +2,7 @@
 IMAGE_USER := irrealis
 IMAGE_REPO := example-analysis
 IMAGE_SOURCE := ${IMAGE_USER}/${IMAGE_REPO}
-IMAGE_VERSION := $$(git describe --first-parent)
+IMAGE_VERSION := $$(git describe --first-parent --dirty)
 IMAGE_TAG := ${IMAGE_SOURCE}:${IMAGE_VERSION}
 IMAGE_TAG_LATEST := ${IMAGE_SOURCE}:latest
 
