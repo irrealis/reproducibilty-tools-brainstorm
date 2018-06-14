@@ -1,7 +1,6 @@
 # Based on NixOS-18.03.
 FROM nixos/nix:latest
 
-
 # Workaround problem where /etc/profile.d/nix.sh doesn't run if USER is unset.
 ENV USER "root"
 
@@ -13,6 +12,8 @@ ENV LOCALE_ARCHIVE "${NIX_PROFILES_DIR}/default/lib/locale/locale-archive"
 ENV LANG en_US.utf8
 ENV LC_ALL en_US.utf8
 
+# Set SCIF_BASE (to SCIF default) so it can be used to set the WORKDIR variable below.
+ENV SCIF_BASE /scif
 # This sets up pipenv to place Python virtual environments beneath each SCIF app's root.
 ENV PIPENV_VENV_IN_PROJECT true
 
@@ -20,16 +21,7 @@ ENV PIPENV_VENV_IN_PROJECT true
 ENV SCIF_SHELL /bin/sh
 ENV SCIF_ENTRYPOINT /bin/sh
 
-# Set SCIF_BASE (to SCIF default) so it can be used to set the WORKDIR variable below.
-ENV SCIF_BASE /scif
-
-
 WORKDIR "${SCIF_BASE}"
-# scif_nix.sh is for use in .scif recipes to configure Nix variables for each SCIF app.
-ADD containers/scif_nix.sh .
-# entrypoint.sh is a one-liner: `pipenv run scif $@`.
-ADD containers/entrypoint.sh .
-
 
 # Here we can select an exact Nix package channel, to make the container reproducible.
 #RUN nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
@@ -38,11 +30,15 @@ RUN nix-channel --update
 RUN nix-env -i glibc glibc-locales pipenv
 RUN pipenv install pipenv scif
 
+# scif_nix.sh is for use in .scif recipes to configure Nix variables for each SCIF app.
+ADD containers/scif_nix.sh .
+# entrypoint.sh is a one-liner: `pipenv run scif $@`.
+ADD containers/entrypoint.sh .
+
 
 # Example setup of SCIF apps configured in example.scif.
 ADD containers/example.scif "${SCIF_BASE}/"
 RUN pipenv run scif install "${SCIF_BASE}/example.scif"
-
 
 # Disable autoloading /etc/profile; will be done for each SCIF app sourcing scif_nix.sh.
 ENV ENV ""
