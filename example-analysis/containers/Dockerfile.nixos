@@ -1,5 +1,5 @@
 # Based on NixOS-18.03.
-FROM nixos/nix:latest
+FROM nixos/nix:2.0
 
 # Workaround problem where /etc/profile.d/nix.sh doesn't run if USER is unset.
 ENV USER "root"
