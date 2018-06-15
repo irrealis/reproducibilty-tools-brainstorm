@@ -1,0 +1,61 @@
+Bootstrap: docker
+From: nixos/nix:2.0
+
+%setup
+  mkdir "$SINGULARITY_ROOTFS/scif"
+
+
+%files 
+  containers/scif_nix.sh /scif/
+  containers/entrypoint.sh /scif/
+  containers/example.scif /scif/
+
+%post
+  # Workaround problem where /etc/profile.d/nix.sh doesn't run if USER is unset.
+  export USER=root
+
+  # NIX_PROFILES_DIR: for setting LOCALE_ARCHIVE, and in $SCIF_BASE/scif_nix.sh to find nix-env.
+  export NIX_PROFILES_DIR=/nix/var/nix/profiles
+
+  # The following locale info is required by pipenv with Python 3.
+  export LOCALE_ARCHIVE="${NIX_PROFILES_DIR}/default/lib/locale/locale-archive"
+  export LANG=en_US.utf8
+  export LC_ALL=en_US.utf8
+  
+  # Set SCIF_BASE (to SCIF default) so it can be used to set the WORKDIR variable below.
+  export SCIF_BASE=/scif
+  # This sets up pipenv to place Python virtual environments beneath each SCIF app's root.
+  export PIPENV_VENV_IN_PROJECT=true
+  
+  # Normally the next two variables would point to /bin/bash, but Nix only has /bin/sh.
+  export SCIF_SHELL=/bin/sh
+  export SCIF_ENTRYPOINT=/bin/sh
+
+  source /etc/profile
+
+  cd "${SCIF_BASE}"
+
+  nix-channel --add https://nixos.org/channels/nixos-18.03 nixos
+  nix-channel --update
+  nix-env --install --attr nixos.glibc_2_26 --attr nixos.glibcLocales --attr nixos.pipenv
+
+  pipenv install --python 3.6.5 pipenv==2018.5.18 scif==0.0.73
+  pipenv run scif install "${SCIF_BASE}/example.scif"
+  
+
+%environment
+  export USER=root
+  export NIX_PROFILES_DIR=/nix/var/nix/profiles
+  export LOCALE_ARCHIVE="${NIX_PROFILES_DIR}/default/lib/locale/locale-archive"
+  export LANG=en_US.utf8
+  export LC_ALL=en_US.utf8
+  export SCIF_BASE=/scif
+  export PIPENV_VENV_IN_PROJECT=true
+  export SCIF_SHELL=/bin/sh
+  export SCIF_ENTRYPOINT=/bin/sh
+  unset ENV
+
+
+%runscript
+  cd "${SCIF_BASE}"
+  pipenv run scif $@
